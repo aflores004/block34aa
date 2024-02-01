@@ -1,0 +1,30 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Generator block specifying to generate Prisma Client for JavaScript
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Datasource block specifying the database connection
+datasource db {
+  provider = "postgresql" // Using PostgreSQL database
+  url      = env("DATABASE_URL") // Database connection URL, read from environment variable DATABASE_URL
+}
+
+// Define the `instructor` model
+model instructor {
+  id       Int      @id @default(autoincrement()) // Primary key, auto-incrementing integer
+  username String   @unique // Unique constraint on username
+  password String   // Password field
+  students student[] // One-to-many relationship with students
+}
+
+// Define the `student` model
+model student {
+  id            Int        @id @default(autoincrement()) // Primary key, auto-incrementing integer
+  name          String                                      // Student name
+  cohort        String                                      // Cohort information
+  instructorId  Int                                         // Foreign key referencing the instructor
+  instructor    instructor   @relation(fields: [instructorId], references: [id]) // Many-to-one relationship with instructor
+}

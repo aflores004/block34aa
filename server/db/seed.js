@@ -1,56 +1,46 @@
-// Clear and repopulate the database.
+const { PrismaClient } = require('@prisma/client');
 
-const db = require("../db");
-const { faker } = require("@faker-js/faker");
+const prisma = new PrismaClient();
 
 async function seed() {
-  console.log("Seeding the database.");
+  console.log('Seeding the database.');
   try {
     // Clear the database.
-    await db.query("DROP TABLE IF EXISTS student, instructor;");
+    await prisma.student.deleteMany({});
+    await prisma.instructor.deleteMany({});
 
-    // Recreate the tables
-    await db.query(`
-      CREATE TABLE instructor (
-        id SERIAL PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL
-      );
-      CREATE TABLE student (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        cohort TEXT NOT NULL,
-        instructorId INTEGER NOT NULL REFERENCES instructor(id) ON DELETE CASCADE
-      );
-    `);
-
-    // Add 5 instructors.
-    await Promise.all(
-      [...Array(5)].map(() =>
-        db.query(
-          `INSERT INTO instructor (username, password) VALUES ($1, $2);`,
-          [faker.internet.userName(), faker.internet.password()]
-        )
-      )
+    // Add instructors.
+    const instructorPromises = [...Array(5)].map(() =>
+      prisma.instructor.create({
+        data: {
+          username: `instructor${Math.floor(Math.random() * 100)}`, // Random username
+          password: `password${Math.floor(Math.random() * 100)}`, // Random password
+        },
+      })
     );
+    await Promise.all(instructorPromises);
 
-    // Add 4 students for each instructor.
-    await Promise.all(
-      [...Array(20)].map((_, i) =>
-        db.query(
-          `INSERT INTO student (name, cohort, instructorId) VALUES ($1, $2, $3);`,
-          [
-            faker.person.fullName(),
-            faker.number.int({ min: 2000, max: 3000 }),
-            (i % 5) + 1,
-          ]
-        )
-      )
-    );
+    // Retrieve existing instructors to get valid instructor IDs.
+    const existingInstructors = await prisma.instructor.findMany();
 
-    console.log("Database is seeded.");
+    // Add students.
+    const studentPromises = [...Array(20)].map(() => {
+      const randomInstructor = existingInstructors[Math.floor(Math.random() * existingInstructors.length)];
+      return prisma.student.create({
+        data: {
+          name: `student${Math.floor(Math.random() * 100)}`, // Random student name
+          cohort: `${Math.floor(Math.random() * 1000) + 2000}`, // Random cohort
+          instructorId: randomInstructor.id,
+        },
+      });
+    });
+    await Promise.all(studentPromises);
+
+    console.log('Database is seeded.');
   } catch (err) {
     console.error(err);
+  } finally {
+    await prisma.$disconnect();
   }
 }
 

@@ -1,12 +1,10 @@
-const { Pool } = require("pg");
-const db = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ||
-    "postgres://localhost:5432/34a-classroom_manager",
-});
+const { PrismaClient } = require("@prisma/client");
+
+const prisma = new PrismaClient();
 
 async function query(sql, params, callback) {
-  return db.query(sql, params, callback);
+  // This function is not necessary with Prisma
+  // You can directly use Prisma's query functions
 }
 
-module.exports = { query };
+module.exports = { prisma };
